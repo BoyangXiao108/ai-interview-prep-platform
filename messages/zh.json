@@ -48,7 +48,7 @@
     "title": "把混乱的求职过程变成有条理的面试准备系统。",
     "description": "AI Interview Prep Platform 将申请追踪、基于简历和职位描述的问题生成、模拟面试练习和岗位笔记整合到一个 Next.js 全栈应用中。",
     "createAccount": "创建账户",
-    "previewDashboard": "预览仪表盘",
+    "previewDashboard": "登录后打开应用",
     "weeklyPrep": "本周准备进度",
     "readyBadge": "准备度 84%",
     "pillar1": "用适合展示给招聘方的看板流程跟踪每一个申请。",

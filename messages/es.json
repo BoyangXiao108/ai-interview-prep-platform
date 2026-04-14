@@ -48,7 +48,7 @@
     "title": "Convierte el caos de la búsqueda laboral en un sistema enfocado de preparación para entrevistas.",
     "description": "AI Interview Prep Platform combina seguimiento de solicitudes, generación de preguntas basada en CV y descripción del puesto, práctica de entrevistas simuladas y notas específicas del puesto en una sola app monolítica con Next.js.",
     "createAccount": "Crear cuenta",
-    "previewDashboard": "Ver panel",
+    "previewDashboard": "Inicia sesión para abrir la app",
     "weeklyPrep": "Preparación semanal",
     "readyBadge": "84% listo",
     "pillar1": "Sigue cada solicitud con un flujo Kanban presentable para reclutadores.",

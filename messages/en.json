@@ -48,7 +48,7 @@
     "title": "Turn job search chaos into a focused interview prep system.",
     "description": "AI Interview Prep Platform combines application tracking, resume-aware question generation, mock interview practice, and job-specific notes in one monolithic Next.js app.",
     "createAccount": "Create account",
-    "previewDashboard": "Preview dashboard",
+    "previewDashboard": "Sign in to open app",
     "weeklyPrep": "Weekly prep",
     "readyBadge": "84% ready",
     "pillar1": "Track every application with a recruiter-ready Kanban workflow.",

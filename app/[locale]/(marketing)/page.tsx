@@ -26,7 +26,7 @@ export default async function MarketingHomePage() {
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Button href="/register">{t("createAccount")}</Button>
-                <Button href="/dashboard" variant="outline">
+                <Button href="/login" variant="outline">
                   {t("previewDashboard")}
                 </Button>
               </div>
