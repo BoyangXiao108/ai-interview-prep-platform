@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7f4ed;
+  --foreground: #1f2937;
+  --card: #fffdf8;
+  --card-foreground: #14213d;
+  --muted: #efe8d8;
+  --muted-foreground: #5d6778;
+  --border: rgba(20, 33, 61, 0.12);
+  --primary: #0f766e;
+  --primary-foreground: #f8fafc;
+  --secondary: #ffb703;
+  --secondary-foreground: #1f2937;
+  --accent: #f97316;
+  --accent-foreground: #fff7ed;
+  --ring: rgba(15, 118, 110, 0.35);
+  --shadow: 0 24px 80px rgba(20, 33, 61, 0.14);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-ring: var(--ring);
+  --font-sans: "Avenir Next", "Segoe UI", sans-serif;
+  --font-heading: "Avenir Next Condensed", "Trebuchet MS", sans-serif;
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  background:
+    radial-gradient(circle at top left, rgba(255, 183, 3, 0.22), transparent 24%),
+    radial-gradient(circle at bottom right, rgba(15, 118, 110, 0.2), transparent 30%),
+    linear-gradient(180deg, #fcfbf8 0%, #f5efdf 100%);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+}
+
+::selection {
+  background: rgba(15, 118, 110, 0.18);
+}
+
+.app-shell {
+  background:
+    radial-gradient(circle at top left, rgba(255, 183, 3, 0.1), transparent 18%),
+    radial-gradient(circle at top right, rgba(15, 118, 110, 0.1), transparent 18%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 253, 248, 0.94) 100%);
+  backdrop-filter: blur(18px);
+}
+
+.hero-grid {
+  background-image:
+    linear-gradient(rgba(20, 33, 61, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 33, 61, 0.05) 1px, transparent 1px);
+  background-size: 48px 48px;
+}

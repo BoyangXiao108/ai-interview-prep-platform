@@ -1,0 +1,217 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ApplicationStatus {
+  WISHLIST
+  APPLIED
+  INTERVIEW
+  OFFER
+  REJECTED
+}
+
+enum QuestionCategory {
+  BEHAVIORAL
+  TECHNICAL
+  SYSTEM_DESIGN
+  LEADERSHIP
+}
+
+enum QuestionDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum QuestionSourceType {
+  AI_GENERATED
+  IMPORTED
+  MANUAL
+}
+
+enum PrepNoteType {
+  RESEARCH
+  INTERVIEW_STRATEGY
+  COMPANY_CONTEXT
+  ANSWER_DRAFT
+  GENERAL
+}
+
+model User {
+  id                String             @id @default(cuid())
+  name              String?
+  email             String             @unique
+  passwordHash      String?
+  emailVerified     DateTime?
+  image             String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  accounts          Account[]
+  sessions          Session[]
+  resumes           Resume[]
+  jobApplications   JobApplication[]
+  interviewSessions InterviewSession[]
+  questionSets      QuestionSet[]
+  notes             PrepNote[]
+}
+
+model Resume {
+  id              String            @id @default(cuid())
+  userId          String
+  fileName        String
+  storagePath     String
+  publicUrl       String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobApplications JobApplication[]
+}
+
+model JobApplication {
+  id                String                @id @default(cuid())
+  userId            String
+  resumeId          String?
+  company           String
+  roleTitle         String
+  location          String?
+  status            ApplicationStatus     @default(WISHLIST)
+  sourceUrl         String?
+  salaryRange       String?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  user              User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resume            Resume?               @relation(fields: [resumeId], references: [id], onDelete: SetNull)
+  jobDescription    JobDescription?
+  activities        ApplicationActivity[]
+  questionSets      QuestionSet[]
+  interviewSessions InterviewSession[]
+  notes             PrepNote[]
+}
+
+model JobDescription {
+  id            String         @id @default(cuid())
+  applicationId String         @unique
+  rawText       String
+  summary       String?
+  keywordsJson  Json?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  application   JobApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
+
+model ApplicationActivity {
+  id               String         @id @default(cuid())
+  jobApplicationId String
+  label            String
+  createdAt        DateTime       @default(now())
+  jobApplication   JobApplication @relation(fields: [jobApplicationId], references: [id], onDelete: Cascade)
+}
+
+model QuestionSet {
+  id            String             @id @default(cuid())
+  userId        String
+  applicationId String?
+  title         String
+  sourceType    QuestionSourceType
+  createdAt     DateTime           @default(now())
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application   JobApplication?    @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  questions     Question[]
+  sessions      InterviewSession[]
+}
+
+model Question {
+  id            String             @id @default(cuid())
+  questionSetId String
+  prompt        String
+  category      QuestionCategory
+  difficulty    QuestionDifficulty
+  source        String             @default("AI")
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  questionSet   QuestionSet        @relation(fields: [questionSetId], references: [id], onDelete: Cascade)
+  responses     InterviewResponse[]
+}
+
+model InterviewSession {
+  id               String             @id @default(cuid())
+  userId           String
+  jobApplicationId String?
+  questionSetId    String?
+  title            String
+  status           String             @default("draft")
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobApplication   JobApplication?    @relation(fields: [jobApplicationId], references: [id], onDelete: SetNull)
+  questionSet      QuestionSet?       @relation(fields: [questionSetId], references: [id], onDelete: SetNull)
+  responses        InterviewResponse[]
+}
+
+model InterviewResponse {
+  id                 String           @id @default(cuid())
+  interviewSessionId String
+  questionId         String
+  questionPrompt     String
+  answer             String
+  feedback           String?
+  score              Int?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  interviewSession   InterviewSession @relation(fields: [interviewSessionId], references: [id], onDelete: Cascade)
+  question           Question         @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([interviewSessionId, questionId])
+}
+
+model PrepNote {
+  id            String         @id @default(cuid())
+  userId        String
+  applicationId String?
+  noteType      PrepNoteType   @default(GENERAL)
+  title         String
+  content       String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application   JobApplication? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String? @db.Text
+  access_token       String? @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String? @db.Text
+  session_state      String?
+  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
