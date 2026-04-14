@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { PrepNoteType } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
       data: {
         userId: session.user.id,
         applicationId: parsed.data.applicationId || null,
-        noteType: parsed.data.noteType,
+        noteType: parsed.data.noteType as PrepNoteType,
         title: parsed.data.title,
         content: parsed.data.content,
       },

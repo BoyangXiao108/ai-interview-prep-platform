@@ -1,3 +1,7 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+
 import { Card, CardContent } from "@/components/ui/card";
 import type { DashboardDataRequirements } from "@/lib/dashboard";
 
@@ -6,26 +10,27 @@ interface StatsGridProps {
 }
 
 export function StatsGrid({ data }: StatsGridProps) {
+  const t = useTranslations("Dashboard");
   const applicationStats = [
     {
-      label: "Total applications",
+      label: t("stats.totalApplications"),
       value: String(data.totalApplications),
-      trend: `${data.countsByStatus.INTERVIEW} in interview`,
+      trend: t("stats.inInterview", { count: data.countsByStatus.INTERVIEW }),
     },
     {
-      label: "Applied",
+      label: t("stats.applied"),
       value: String(data.countsByStatus.APPLIED),
-      trend: `${data.countsByStatus.WISHLIST} on wishlist`,
+      trend: t("stats.onWishlist", { count: data.countsByStatus.WISHLIST }),
     },
     {
-      label: "Offers",
+      label: t("stats.offers"),
       value: String(data.countsByStatus.OFFER),
-      trend: `${data.countsByStatus.REJECTED} closed out`,
+      trend: t("stats.closedOut", { count: data.countsByStatus.REJECTED }),
     },
     {
-      label: "Generated questions",
+      label: t("stats.generatedQuestions"),
       value: String(data.totalGeneratedQuestions),
-      trend: "Across all question sets",
+      trend: t("stats.acrossAllQuestionSets"),
     },
   ];
 

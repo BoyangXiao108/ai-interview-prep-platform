@@ -1,11 +1,28 @@
 import { z } from "zod";
+import enMessages from "@/messages/en.json";
 
-export const startSessionSchema = z.object({
-  questionSetId: z.string().trim().min(1, "Question set id is required."),
-});
+import { requiredTrimmedString } from "@/lib/validations/helpers";
 
-export const saveInterviewAnswerSchema = z.object({
-  sessionId: z.string().trim().min(1, "Session id is required."),
-  questionId: z.string().trim().min(1, "Question id is required."),
-  answer: z.string().trim().min(1, "Answer cannot be empty."),
-});
+type ValidationKey = keyof typeof enMessages.Validation;
+type ValidationTranslator = (key: ValidationKey) => string;
+
+const defaultValidation: ValidationTranslator = (key) => enMessages.Validation[key];
+
+export function getStartSessionSchema(t: ValidationTranslator = defaultValidation) {
+  return z.object({
+    questionSetId: requiredTrimmedString(t("selectQuestionSet")),
+  });
+}
+
+export function getSaveInterviewAnswerSchema(
+  t: ValidationTranslator = defaultValidation,
+) {
+  return z.object({
+    sessionId: requiredTrimmedString(t("reloadSession")),
+    questionId: requiredTrimmedString(t("questionSaveUnavailable")),
+    answer: requiredTrimmedString(t("answerRequired")),
+  });
+}
+
+export const startSessionSchema = getStartSessionSchema();
+export const saveInterviewAnswerSchema = getSaveInterviewAnswerSchema();

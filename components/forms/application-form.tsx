@@ -1,3 +1,7 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+
 import { createApplicationAction } from "@/actions/applications";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +12,9 @@ interface ApplicationFormProps {
 }
 
 export function ApplicationForm({ message }: ApplicationFormProps) {
+  const t = useTranslations("Applications");
+  const common = useTranslations("Common");
+
   return (
     <form action={createApplicationAction} className="space-y-4">
       {message ? (
@@ -15,22 +22,35 @@ export function ApplicationForm({ message }: ApplicationFormProps) {
           {message}
         </p>
       ) : null}
-      <Input name="company" placeholder="Target company" />
-      <Input name="roleTitle" placeholder="Role title" />
-      <Input name="location" placeholder="Location" />
-      <Input name="sourceUrl" placeholder="Job post URL (optional)" />
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-slate-700" htmlFor="company">
+          {t("company")} <span className="text-rose-500">*</span>
+        </label>
+        <Input id="company" name="company" placeholder={t("targetCompany")} required />
+      </div>
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-slate-700" htmlFor="roleTitle">
+          {t("roleTitle")} <span className="text-rose-500">*</span>
+        </label>
+        <Input id="roleTitle" name="roleTitle" placeholder={t("roleTitle")} required />
+      </div>
+      <Input name="location" placeholder={common("location")} />
+      <Input name="sourceUrl" placeholder={t("jobPostUrl")} />
       <div className="grid gap-4 md:grid-cols-2">
-        <Input name="salaryRange" placeholder="Salary range (optional)" />
+        <Input name="salaryRange" placeholder={t("salaryRange")} />
         <Select name="status" defaultValue="WISHLIST">
-          <option value="WISHLIST">Wishlist</option>
-          <option value="APPLIED">Applied</option>
-          <option value="INTERVIEW">Interview</option>
-          <option value="OFFER">Offer</option>
-          <option value="REJECTED">Rejected</option>
+          <option value="WISHLIST">{t("status.WISHLIST")}</option>
+          <option value="APPLIED">{t("status.APPLIED")}</option>
+          <option value="INTERVIEW">{t("status.INTERVIEW")}</option>
+          <option value="OFFER">{t("status.OFFER")}</option>
+          <option value="REJECTED">{t("status.REJECTED")}</option>
         </Select>
       </div>
+      <p className="text-xs text-muted-foreground">
+        {t("requiredFields")}
+      </p>
       <Button type="submit" className="w-full">
-        Save application
+        {t("saveApplication")}
       </Button>
     </form>
   );

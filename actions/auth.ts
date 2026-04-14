@@ -2,10 +2,13 @@
 
 import { hash } from "bcryptjs";
 import { AuthError } from "next-auth";
+import { getLocale, getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 
+import type { Locale } from "@/i18n/routing";
 import { prisma } from "@/lib/prisma";
-import { loginSchema, registerSchema } from "@/lib/validations/auth";
+import { withLocale } from "@/lib/locale";
+import { getLoginSchema, getRegisterSchema } from "@/lib/validations/auth";
 import { signIn, signOut } from "@/lib/auth";
 
 function getRedirectMessage(path: string, message: string) {
@@ -13,14 +16,22 @@ function getRedirectMessage(path: string, message: string) {
 }
 
 export async function registerAction(formData: FormData) {
-  const parsed = registerSchema.safeParse({
+  const locale = (await getLocale()) as Locale;
+  const validation = await getTranslations({ locale, namespace: "Validation" });
+  const messages = await getTranslations({ locale, namespace: "Messages" });
+  const parsed = getRegisterSchema((key) => validation(key)).safeParse({
     name: formData.get("name"),
     email: formData.get("email"),
     password: formData.get("password"),
   });
 
   if (!parsed.success) {
-    redirect(getRedirectMessage("/register", parsed.error.issues[0]?.message ?? "Invalid input."));
+    redirect(
+      getRedirectMessage(
+        withLocale(locale, "/register"),
+        parsed.error.issues[0]?.message ?? "Invalid input.",
+      ),
+    );
   }
 
   const existingUser = await prisma.user.findUnique({
@@ -28,7 +39,9 @@ export async function registerAction(formData: FormData) {
   });
 
   if (existingUser) {
-    redirect(getRedirectMessage("/register", "An account with that email already exists."));
+    redirect(
+      getRedirectMessage(withLocale(locale, "/register"), messages("accountExists")),
+    );
   }
 
   const passwordHash = await hash(parsed.data.password, 12);
@@ -44,29 +57,37 @@ export async function registerAction(formData: FormData) {
   await signIn("credentials", {
     email: parsed.data.email,
     password: parsed.data.password,
-    redirectTo: "/dashboard",
+    redirectTo: withLocale(locale, "/dashboard"),
   });
 }
 
 export async function loginAction(formData: FormData) {
-  const parsed = loginSchema.safeParse({
+  const locale = (await getLocale()) as Locale;
+  const validation = await getTranslations({ locale, namespace: "Validation" });
+  const messages = await getTranslations({ locale, namespace: "Messages" });
+  const parsed = getLoginSchema((key) => validation(key)).safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
   });
 
   if (!parsed.success) {
-    redirect(getRedirectMessage("/login", parsed.error.issues[0]?.message ?? "Invalid input."));
+    redirect(
+      getRedirectMessage(
+        withLocale(locale, "/login"),
+        parsed.error.issues[0]?.message ?? "Invalid input.",
+      ),
+    );
   }
 
   try {
     await signIn("credentials", {
       email: parsed.data.email,
       password: parsed.data.password,
-      redirectTo: "/dashboard",
+      redirectTo: withLocale(locale, "/dashboard"),
     });
   } catch (error) {
     if (error instanceof AuthError) {
-      redirect(getRedirectMessage("/login", "Incorrect email or password."));
+      redirect(getRedirectMessage(withLocale(locale, "/login"), messages("loginInvalid")));
     }
 
     throw error;
@@ -74,7 +95,9 @@ export async function loginAction(formData: FormData) {
 }
 
 export async function logoutAction() {
+  const locale = (await getLocale()) as Locale;
+
   await signOut({
-    redirectTo: "/login",
+    redirectTo: withLocale(locale, "/login"),
   });
 }

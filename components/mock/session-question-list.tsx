@@ -1,3 +1,7 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+
 import { saveInterviewAnswerAction } from "@/actions/mock";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +12,7 @@ import { cn } from "@/lib/utils";
 interface SessionQuestionListProps {
   sessionId: string;
   returnPath: string;
+  highlightedQuestionId?: string;
   questions: Array<{
     id: string;
     prompt: string;
@@ -30,9 +35,12 @@ const difficultyTone = {
 export function SessionQuestionList({
   sessionId,
   returnPath,
+  highlightedQuestionId,
   questions,
   responses,
 }: SessionQuestionListProps) {
+  const t = useTranslations("Mock");
+  const questionBank = useTranslations("QuestionBank");
   const responsesByQuestionId = new Map(
     responses.map((response) => [response.questionId, response]),
   );
@@ -41,20 +49,30 @@ export function SessionQuestionList({
     <div className="space-y-5">
       {questions.map((question, index) => {
         const existingResponse = responsesByQuestionId.get(question.id);
+        const questionAnchor = `question-${index + 1}`;
+        const isHighlighted = highlightedQuestionId === question.id;
 
         return (
-          <Card key={question.id} className={cn(existingResponse ? "border-primary/30" : "")}>
+          <Card
+            id={questionAnchor}
+            key={question.id}
+            className={cn(
+              existingResponse ? "border-primary/30" : "",
+              isHighlighted ? "ring-2 ring-primary/25" : "",
+            )}
+          >
             <CardContent className="space-y-4 p-7">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge tone="info">{question.category}</Badge>
+                <Badge tone="info">{questionBank(`category.${question.category}`)}</Badge>
                 <Badge tone={difficultyTone[question.difficulty as keyof typeof difficultyTone]}>
-                  {question.difficulty}
+                  {questionBank(`difficulty.${question.difficulty}`)}
                 </Badge>
-                {existingResponse ? <Badge tone="success">Saved</Badge> : null}
+                {existingResponse ? <Badge tone="success">{t("saved")}</Badge> : null}
+                {isHighlighted ? <Badge tone="success">{t("justUpdated")}</Badge> : null}
               </div>
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Question {index + 1}
+                  {t("questionIndex", { current: index + 1, total: questions.length })}
                 </p>
                 <p className="mt-2 text-lg font-medium leading-8">{question.prompt}</p>
               </div>
@@ -66,16 +84,16 @@ export function SessionQuestionList({
                   className="min-h-32 bg-white"
                   defaultValue={existingResponse?.answer ?? ""}
                   name="answer"
-                  placeholder="Write your answer here..."
+                  placeholder={t("writeAnswer")}
                 />
-                <div className="flex items-center justify-between gap-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-sm text-muted-foreground">
                     {existingResponse
-                      ? "You can keep refining this saved answer."
-                      : "Draft an answer and save your progress."}
+                      ? t("savedHint")
+                      : t("draftHint")}
                   </p>
-                  <SubmitButton pendingText="Saving..." variant="outline">
-                    {existingResponse ? "Update answer" : "Save answer"}
+                  <SubmitButton pendingText={t("savingAnswer")} variant="outline">
+                    {existingResponse ? t("updateAnswer") : t("saveAnswer")}
                   </SubmitButton>
                 </div>
               </form>

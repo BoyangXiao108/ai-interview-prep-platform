@@ -1,13 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getLocale, getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 
+import type { Locale } from "@/i18n/routing";
 import { auth } from "@/lib/auth";
+import { withLocale } from "@/lib/locale";
 import { prisma } from "@/lib/prisma";
+import { getFirstValidationMessage } from "@/lib/validations/helpers";
 import {
-  saveInterviewAnswerSchema,
-  startSessionSchema,
+  getSaveInterviewAnswerSchema,
+  getStartSessionSchema,
 } from "@/lib/validations/mock";
 
 function withMessage(path: string, message: string) {
@@ -17,19 +21,37 @@ function withMessage(path: string, message: string) {
   return `${pathname}?${params.toString()}`;
 }
 
+function withParam(path: string, key: string, value: string) {
+  const [pathname, query = ""] = path.split("?");
+  const params = new URLSearchParams(query);
+  params.set(key, value);
+  return `${pathname}?${params.toString()}`;
+}
+
 export async function startMockSessionAction(formData: FormData) {
+  const locale = (await getLocale()) as Locale;
+  const validation = await getTranslations({ locale, namespace: "Validation" });
+  const messages = await getTranslations({ locale, namespace: "Messages" });
   const session = await auth();
 
   if (!session?.user?.id) {
-    redirect("/login");
+    redirect(withLocale(locale, "/login"));
   }
 
-  const parsed = startSessionSchema.safeParse({
+  const parsed = getStartSessionSchema((key) => validation(key)).safeParse({
     questionSetId: formData.get("questionSetId"),
   });
 
   if (!parsed.success) {
-    redirect(withMessage("/question-bank", parsed.error.issues[0]?.message ?? "Unable to start session."));
+    redirect(
+      withMessage(
+        withLocale(locale, "/question-bank"),
+        getFirstValidationMessage(
+          parsed.error.issues,
+          messages("unableStartMock"),
+        ),
+      ),
+    );
   }
 
   const questionSet = await prisma.questionSet.findFirst({
@@ -52,11 +74,11 @@ export async function startMockSessionAction(formData: FormData) {
   });
 
   if (!questionSet) {
-    redirect(withMessage("/question-bank", "Question set not found."));
+    redirect(withMessage(withLocale(locale, "/question-bank"), messages("questionSetMissing")));
   }
 
   if (!questionSet.questions.length) {
-    redirect(withMessage("/question-bank", "This question set has no questions yet."));
+    redirect(withMessage(withLocale(locale, "/question-bank"), messages("questionSetEmpty")));
   }
 
   const interviewSession = await prisma.interviewSession.create({
@@ -74,35 +96,41 @@ export async function startMockSessionAction(formData: FormData) {
     },
   });
 
-  revalidatePath("/mock");
-  revalidatePath("/dashboard");
+  revalidatePath(withLocale(locale, "/mock"));
+  revalidatePath(withLocale(locale, "/dashboard"));
   if (questionSet.applicationId) {
-    revalidatePath(`/applications/${questionSet.applicationId}`);
+    revalidatePath(withLocale(locale, `/applications/${questionSet.applicationId}`));
   }
 
-  redirect(`/mock/${interviewSession.id}`);
+  redirect(withLocale(locale, `/mock/${interviewSession.id}`));
 }
 
 export async function saveInterviewAnswerAction(formData: FormData) {
+  const locale = (await getLocale()) as Locale;
+  const validation = await getTranslations({ locale, namespace: "Validation" });
+  const messages = await getTranslations({ locale, namespace: "Messages" });
   const session = await auth();
 
   if (!session?.user?.id) {
-    redirect("/login");
+    redirect(withLocale(locale, "/login"));
   }
 
-  const parsed = saveInterviewAnswerSchema.safeParse({
+  const parsed = getSaveInterviewAnswerSchema((key) => validation(key)).safeParse({
     sessionId: formData.get("sessionId"),
     questionId: formData.get("questionId"),
     answer: formData.get("answer"),
   });
 
-  const returnPath = String(formData.get("returnPath") ?? "/mock");
+  const returnPath = withLocale(locale, String(formData.get("returnPath") ?? "/mock"));
 
   if (!parsed.success) {
     redirect(
       withMessage(
         returnPath,
-        parsed.error.issues[0]?.message ?? "Unable to save answer.",
+        getFirstValidationMessage(
+          parsed.error.issues,
+          messages("unableSaveAnswer"),
+        ),
       ),
     );
   }
@@ -132,7 +160,7 @@ export async function saveInterviewAnswerAction(formData: FormData) {
   });
 
   if (!ownedSession?.questionSet) {
-    redirect(withMessage(returnPath, "Session not found."));
+    redirect(withMessage(returnPath, messages("mockSessionMissing")));
   }
 
   const question = ownedSession.questionSet.questions.find(
@@ -140,7 +168,7 @@ export async function saveInterviewAnswerAction(formData: FormData) {
   );
 
   if (!question) {
-    redirect(withMessage(returnPath, "Question not found for this session."));
+    redirect(withMessage(returnPath, messages("questionMissingForSession")));
   }
 
   await prisma.interviewResponse.upsert({
@@ -175,12 +203,17 @@ export async function saveInterviewAnswerAction(formData: FormData) {
     },
   });
 
-  revalidatePath("/mock");
-  revalidatePath(`/mock/${parsed.data.sessionId}`);
-  revalidatePath("/dashboard");
+  revalidatePath(withLocale(locale, "/mock"));
+  revalidatePath(withLocale(locale, `/mock/${parsed.data.sessionId}`));
+  revalidatePath(withLocale(locale, "/dashboard"));
   if (ownedSession.jobApplicationId) {
-    revalidatePath(`/applications/${ownedSession.jobApplicationId}`);
+    revalidatePath(withLocale(locale, `/applications/${ownedSession.jobApplicationId}`));
   }
 
-  redirect(withMessage(returnPath, "Answer saved."));
+  redirect(
+    withMessage(
+      withParam(returnPath, "savedQuestionId", parsed.data.questionId),
+      messages("answerSaved"),
+    ),
+  );
 }

@@ -24,7 +24,11 @@ interface GeneratedQuestionDraft {
 
 export interface GenerateQuestionSetResult {
   ok: boolean;
-  message: string;
+  code:
+    | "APPLICATION_NOT_FOUND"
+    | "JOB_DESCRIPTION_REQUIRED"
+    | "QUESTION_SET_GENERATED"
+    | "QUESTION_SET_FALLBACK";
   questionSetId?: string;
   usedFallback?: boolean;
 }
@@ -164,14 +168,14 @@ export async function generateQuestionSetForApplication(
   if (!context) {
     return {
       ok: false,
-      message: "Application not found.",
+      code: "APPLICATION_NOT_FOUND",
     };
   }
 
   if (!context.jobDescription?.rawText) {
     return {
       ok: false,
-      message: "Add a job description before generating questions.",
+      code: "JOB_DESCRIPTION_REQUIRED",
     };
   }
 
@@ -218,10 +222,8 @@ export async function generateQuestionSetForApplication(
 
   return {
     ok: true,
+    code: usedFallback ? "QUESTION_SET_FALLBACK" : "QUESTION_SET_GENERATED",
     questionSetId: questionSet.id,
     usedFallback,
-    message: usedFallback
-      ? "Generated a starter question set. Add OPENAI_API_KEY for AI-tailored results."
-      : "Question set generated successfully.",
   };
 }

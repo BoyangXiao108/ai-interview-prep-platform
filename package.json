@@ -7,6 +7,8 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
+    "i18n:check": "node scripts/check-i18n.mjs",
+    "test": "vitest run",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts"
@@ -21,6 +23,7 @@
     "lucide-react": "^1.8.0",
     "next": "16.2.3",
     "next-auth": "^5.0.0-beta.30",
+    "next-intl": "^4.9.1",
     "openai": "^6.34.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -37,6 +40,8 @@
     "prisma": "^6.16.2",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite-tsconfig-paths": "^6.1.1",
+    "vitest": "^4.1.4"
   }
 }

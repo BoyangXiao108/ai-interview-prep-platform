@@ -2,50 +2,35 @@
 
 import { ApplicationStatus, PrepNoteType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { getLocale, getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 
+import type { Locale } from "@/i18n/routing";
 import { auth } from "@/lib/auth";
+import { withLocale } from "@/lib/locale";
 import { prisma } from "@/lib/prisma";
-import { applicationSchema } from "@/lib/validations/applications";
-import { jobDescriptionSchema } from "@/lib/validations/job-description";
-import { prepNoteSchema } from "@/lib/validations/notes";
+import { getFirstValidationMessage } from "@/lib/validations/helpers";
+import { getApplicationSchema } from "@/lib/validations/applications";
+import { getJobDescriptionSchema } from "@/lib/validations/job-description";
+import { getPrepNoteSchema } from "@/lib/validations/notes";
 
 function withMessage(path: string, message: string) {
   return `${path}?message=${encodeURIComponent(message)}`;
 }
 
-function getValidationMessage(
-  issues: Array<{
-    path: PropertyKey[];
-    message: string;
-  }>,
-) {
-  const issue = issues[0];
-
-  if (!issue) {
-    return "Invalid input.";
-  }
-
-  const field = issue.path[0];
-
-  if (typeof field === "string" && field.length > 0) {
-    return `${field}: ${issue.message}`;
-  }
-
-  return issue.message;
-}
-
 async function requireUserId() {
   const session = await auth();
+  const locale = (await getLocale()) as Locale;
 
   if (!session?.user?.id) {
-    redirect("/login");
+    redirect(withLocale(locale, "/login"));
   }
 
   return session.user.id;
 }
 
 async function assertOwnership(userId: string, applicationId: string) {
+  const locale = (await getLocale()) as Locale;
   const application = await prisma.jobApplication.findFirst({
     where: {
       id: applicationId,
@@ -57,16 +42,19 @@ async function assertOwnership(userId: string, applicationId: string) {
   });
 
   if (!application) {
-    redirect("/applications");
+    redirect(withLocale(locale, "/applications"));
   }
 
   return application;
 }
 
 export async function createApplicationAction(formData: FormData) {
+  const locale = (await getLocale()) as Locale;
+  const validation = await getTranslations({ locale, namespace: "Validation" });
+  const messages = await getTranslations({ locale, namespace: "Messages" });
   const userId = await requireUserId();
 
-  const parsed = applicationSchema.safeParse({
+  const parsed = getApplicationSchema((key) => validation(key)).safeParse({
     company: formData.get("company"),
     roleTitle: formData.get("roleTitle"),
     location: formData.get("location"),
@@ -79,8 +67,11 @@ export async function createApplicationAction(formData: FormData) {
   if (!parsed.success) {
     redirect(
       withMessage(
-        "/applications",
-        getValidationMessage(parsed.error.issues),
+        withLocale(locale, "/applications"),
+        getFirstValidationMessage(
+          parsed.error.issues,
+          messages("unableCreateApplication"),
+        ),
       ),
     );
   }
@@ -103,24 +94,30 @@ export async function createApplicationAction(formData: FormData) {
     },
   });
 
-  revalidatePath("/applications");
-  revalidatePath("/dashboard");
-  redirect(withMessage("/applications", "Application created."));
+  revalidatePath(withLocale(locale, "/applications"));
+  revalidatePath(withLocale(locale, "/dashboard"));
+  redirect(withMessage(withLocale(locale, "/applications"), messages("applicationCreated")));
 }
 
 export async function updateApplicationStatusAction(formData: FormData) {
+  const locale = (await getLocale()) as Locale;
+  const validation = await getTranslations({ locale, namespace: "Validation" });
+  const messages = await getTranslations({ locale, namespace: "Messages" });
   const userId = await requireUserId();
 
   const applicationId = String(formData.get("applicationId") ?? "");
-  const returnPath = String(formData.get("returnPath") ?? "/applications");
+  const returnPath = withLocale(
+    locale,
+    String(formData.get("returnPath") ?? "/applications"),
+  );
   const status = String(formData.get("status") ?? "");
 
   if (!applicationId) {
-    redirect(withMessage(returnPath, "Application id is required."));
+    redirect(withMessage(returnPath, messages("unableUpdateApplication")));
   }
 
   if (!Object.values(ApplicationStatus).includes(status as ApplicationStatus)) {
-    redirect(withMessage(returnPath, "Select a valid status."));
+    redirect(withMessage(returnPath, validation("validApplicationStatus")));
   }
 
   await assertOwnership(userId, applicationId);
@@ -137,29 +134,38 @@ export async function updateApplicationStatusAction(formData: FormData) {
     },
   });
 
-  revalidatePath("/applications");
-  revalidatePath("/dashboard");
-  revalidatePath(`/applications/${applicationId}`);
-  redirect(withMessage(returnPath, "Application status updated."));
+  revalidatePath(withLocale(locale, "/applications"));
+  revalidatePath(withLocale(locale, "/dashboard"));
+  revalidatePath(withLocale(locale, `/applications/${applicationId}`));
+  redirect(withMessage(returnPath, messages("applicationStatusUpdated")));
 }
 
 export async function saveJobDescriptionAction(formData: FormData) {
+  const locale = (await getLocale()) as Locale;
+  const validation = await getTranslations({ locale, namespace: "Validation" });
+  const messages = await getTranslations({ locale, namespace: "Messages" });
   const userId = await requireUserId();
 
-  const parsed = jobDescriptionSchema.safeParse({
+  const parsed = getJobDescriptionSchema((key) => validation(key)).safeParse({
     applicationId: formData.get("applicationId"),
     rawText: formData.get("rawText"),
   });
 
-  const returnPath = String(
-    formData.get("returnPath") ?? `/applications/${String(formData.get("applicationId") ?? "")}`,
+  const returnPath = withLocale(
+    locale,
+    String(
+      formData.get("returnPath") ?? `/applications/${String(formData.get("applicationId") ?? "")}`,
+    ),
   );
 
   if (!parsed.success) {
     redirect(
       withMessage(
         returnPath,
-        parsed.error.issues[0]?.message ?? "Unable to save job description.",
+        getFirstValidationMessage(
+          parsed.error.issues,
+          validation("jobDescriptionUnavailable"),
+        ),
       ),
     );
   }
@@ -181,29 +187,38 @@ export async function saveJobDescriptionAction(formData: FormData) {
     },
   });
 
-  revalidatePath(`/applications/${parsed.data.applicationId}`);
-  redirect(withMessage(returnPath, "Job description saved."));
+  revalidatePath(withLocale(locale, `/applications/${parsed.data.applicationId}`));
+  redirect(withMessage(returnPath, messages("jobDescriptionSaved")));
 }
 
 export async function createPrepNoteAction(formData: FormData) {
+  const locale = (await getLocale()) as Locale;
+  const validation = await getTranslations({ locale, namespace: "Validation" });
+  const messages = await getTranslations({ locale, namespace: "Messages" });
   const userId = await requireUserId();
 
-  const parsed = prepNoteSchema.safeParse({
+  const parsed = getPrepNoteSchema((key) => validation(key)).safeParse({
     applicationId: formData.get("applicationId"),
     noteType: formData.get("noteType"),
     title: formData.get("title"),
     content: formData.get("content"),
   });
 
-  const returnPath = String(
-    formData.get("returnPath") ?? `/applications/${String(formData.get("applicationId") ?? "")}`,
+  const returnPath = withLocale(
+    locale,
+    String(
+      formData.get("returnPath") ?? `/applications/${String(formData.get("applicationId") ?? "")}`,
+    ),
   );
 
   if (!parsed.success) {
     redirect(
       withMessage(
         returnPath,
-        parsed.error.issues[0]?.message ?? "Unable to save note.",
+        getFirstValidationMessage(
+          parsed.error.issues,
+          messages("unableSaveNote"),
+        ),
       ),
     );
   }
@@ -216,28 +231,34 @@ export async function createPrepNoteAction(formData: FormData) {
     data: {
       userId,
       applicationId: parsed.data.applicationId || null,
-      noteType: parsed.data.noteType,
+      noteType: parsed.data.noteType as PrepNoteType,
       title: parsed.data.title,
       content: parsed.data.content,
     },
   });
 
   if (parsed.data.applicationId) {
-    revalidatePath(`/applications/${parsed.data.applicationId}`);
+    revalidatePath(withLocale(locale, `/applications/${parsed.data.applicationId}`));
   }
 
-  revalidatePath("/applications");
-  redirect(withMessage(returnPath, "Prep note saved."));
+  revalidatePath(withLocale(locale, "/applications"));
+  redirect(withMessage(returnPath, messages("prepNoteSaved")));
 }
 
 export async function updatePrepNoteAction(formData: FormData) {
+  const locale = (await getLocale()) as Locale;
+  const validation = await getTranslations({ locale, namespace: "Validation" });
+  const messages = await getTranslations({ locale, namespace: "Messages" });
   const userId = await requireUserId();
 
   const noteId = String(formData.get("noteId") ?? "");
-  const returnPath = String(formData.get("returnPath") ?? "/applications");
+  const returnPath = withLocale(
+    locale,
+    String(formData.get("returnPath") ?? "/applications"),
+  );
   const applicationId = String(formData.get("applicationId") ?? "");
 
-  const parsed = prepNoteSchema.safeParse({
+  const parsed = getPrepNoteSchema((key) => validation(key)).safeParse({
     applicationId: applicationId || undefined,
     noteType: formData.get("noteType"),
     title: formData.get("title"),
@@ -245,11 +266,19 @@ export async function updatePrepNoteAction(formData: FormData) {
   });
 
   if (!noteId) {
-    redirect(withMessage(returnPath, "Note id is required."));
+    redirect(withMessage(returnPath, messages("unableUpdateNote")));
   }
 
   if (!parsed.success) {
-    redirect(withMessage(returnPath, parsed.error.issues[0]?.message ?? "Unable to update note."));
+    redirect(
+      withMessage(
+        returnPath,
+        getFirstValidationMessage(
+          parsed.error.issues,
+          messages("unableUpdateNote"),
+        ),
+      ),
+    );
   }
 
   const existingNote = await prisma.prepNote.findFirst({
@@ -264,7 +293,7 @@ export async function updatePrepNoteAction(formData: FormData) {
   });
 
   if (!existingNote) {
-    redirect(withMessage(returnPath, "Note not found."));
+    redirect(withMessage(returnPath, messages("prepNoteMissing")));
   }
 
   if (parsed.data.applicationId) {
@@ -282,13 +311,13 @@ export async function updatePrepNoteAction(formData: FormData) {
   });
 
   if (existingNote.applicationId) {
-    revalidatePath(`/applications/${existingNote.applicationId}`);
+    revalidatePath(withLocale(locale, `/applications/${existingNote.applicationId}`));
   }
 
   if (parsed.data.applicationId) {
-    revalidatePath(`/applications/${parsed.data.applicationId}`);
+    revalidatePath(withLocale(locale, `/applications/${parsed.data.applicationId}`));
   }
 
-  revalidatePath("/applications");
-  redirect(withMessage(returnPath, "Prep note updated."));
+  revalidatePath(withLocale(locale, "/applications"));
+  redirect(withMessage(returnPath, messages("prepNoteUpdated")));
 }

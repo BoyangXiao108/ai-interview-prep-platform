@@ -1,16 +1,32 @@
 import { z } from "zod";
+import enMessages from "@/messages/en.json";
 
-export const prepNoteSchema = z.object({
-  applicationId: z.string().optional(),
-  noteType: z
-    .enum([
-      "RESEARCH",
-      "INTERVIEW_STRATEGY",
-      "COMPANY_CONTEXT",
-      "ANSWER_DRAFT",
-      "GENERAL",
-    ])
-    .default("GENERAL"),
-  title: z.string().trim().min(2, "Title is required."),
-  content: z.string().trim().min(1, "Content is required."),
-});
+import {
+  optionalStringField,
+  requiredTrimmedString,
+} from "@/lib/validations/helpers";
+
+type ValidationKey = keyof typeof enMessages.Validation;
+type ValidationTranslator = (key: ValidationKey) => string;
+
+const defaultValidation: ValidationTranslator = (key) => enMessages.Validation[key];
+
+export function getPrepNoteSchema(t: ValidationTranslator = defaultValidation) {
+  return z.object({
+    applicationId: optionalStringField,
+    noteType: z
+      .enum([
+        "RESEARCH",
+        "INTERVIEW_STRATEGY",
+        "COMPANY_CONTEXT",
+        "ANSWER_DRAFT",
+        "GENERAL",
+      ])
+      .or(z.literal("").transform(() => "GENERAL"))
+      .default("GENERAL"),
+    title: requiredTrimmedString(t("noteTitleRequired")),
+    content: requiredTrimmedString(t("noteContentRequired")),
+  });
+}
+
+export const prepNoteSchema = getPrepNoteSchema();

@@ -57,5 +57,6 @@ export async function getQuestionBankData(userId: string, filters: QuestionBankF
   return {
     applications,
     questionSets: filteredSets,
+    totalQuestionSets: questionSets.length,
   };
 }

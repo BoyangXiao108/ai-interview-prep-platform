@@ -4,6 +4,14 @@ import { auth } from "@/lib/auth";
 import { generateQuestionSetForApplication } from "@/lib/questions/generator";
 import { generateQuestionSetSchema } from "@/lib/validations/questions";
 
+const errorByCode = {
+  APPLICATION_NOT_FOUND: "Application not found.",
+  JOB_DESCRIPTION_REQUIRED: "Add a job description before generating questions.",
+  QUESTION_SET_GENERATED: "Question set generated successfully.",
+  QUESTION_SET_FALLBACK:
+    "Generated a starter question set. Add OPENAI_API_KEY for AI-tailored results.",
+} as const;
+
 export async function POST(request: Request) {
   const session = await auth();
 
@@ -28,7 +36,7 @@ export async function POST(request: Request) {
     );
 
     if (!result.ok) {
-      return NextResponse.json({ error: result.message }, { status: 400 });
+      return NextResponse.json({ error: errorByCode[result.code] }, { status: 400 });
     }
 
     return NextResponse.json({ data: result });
